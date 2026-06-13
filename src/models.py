@@ -31,7 +31,8 @@ class Torneo(db.Model):
     fecha_inicio: Mapped[Date] = mapped_column(Date())
     fecha_final: Mapped[Date] = mapped_column(Date())
 
-    premios: Mapped[list["Premios"]] = relationship(back_populates="torneo")
+    premios: Mapped[list["Premios"]] = relationship(
+        back_populates="torneo", cascade="all, delete-orphan")
 
     def serialize(self):
         return {
