@@ -34,6 +34,8 @@ class Torneo(db.Model):
     premios: Mapped[list["Premios"]] = relationship(
         back_populates="torneo", cascade="all, delete-orphan")
 
+    # subscripciones que viene del backref de Subscripciones
+
     def serialize(self):
         return {
             "id": self.id,
@@ -42,7 +44,8 @@ class Torneo(db.Model):
             "finicio": self.fecha_inicio,
             "ffinal": self.fecha_final,
 
-            "premios": [premio.serialize() for premio in self.premios]
+            "premios": [premio.serialize() for premio in self.premios],
+            "subscripciones": [subscripcion.id for subscripcion in self.subscripciones]
         }
 
 
@@ -53,7 +56,14 @@ class Subscripciones(db.Model):
     user: Mapped[User] = relationship()
 
     torneo_id: Mapped[int] = mapped_column(ForeignKey("torneo.id"))
-    torneo: Mapped[Torneo] = relationship()
+    torneo: Mapped[Torneo] = relationship(backref="subscripciones")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "torneo_id": self.torneo_id
+        }
 
 
 class Resultado(pyEnum):
@@ -74,6 +84,17 @@ class Partidos(db.Model):
 
     torneo_id: Mapped[int] = mapped_column(ForeignKey("torneo.id"))
     torneo: Mapped[Torneo] = relationship()
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "equipo_local": self.equipo_local,
+            "equipo_visitante": self.equipo_visitante,
+            "fecha": self.fecha,
+            "etapa": self.etapa,
+            "resultado": self.resultado.name,
+            "torneo_id": self.torneo_id
+        }
 
 
 class Premios(db.Model):
@@ -102,3 +123,11 @@ class Prediccion(db.Model):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     user: Mapped[User] = relationship()
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_prediction": self.user_prediction.name,
+            "partido_id": self.partido_id,
+            "user_id": self.user_id
+        }
