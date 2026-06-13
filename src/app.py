@@ -131,6 +131,38 @@ def add_premio(torneo_id):
     }), 201
 
 
+@app.route('/premios/<int:premio_id>', methods=['PATCH'])
+def edit_premios(premio_id):
+
+    searched_premio = Premios.query.get(premio_id)
+
+    if not searched_premio:
+        raise APIException(
+            f"No se ha encontrado ese premio_id en la db", status_code=404)
+
+    body = request.get_json()
+
+    name = body.get("name")
+    descripcion = body.get("descripcion")
+
+    try:
+        if name:
+            searched_premio.nombre = name
+        if descripcion:
+            searched_premio.descripcion = descripcion
+
+        db.session.commit()
+
+    except Exception as e:
+        raise APIException(
+            f"Something wrong happened", status_code=500
+        )
+
+    return jsonify({
+        "premio": searched_premio.serialize()
+    }), 200
+
+
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))
