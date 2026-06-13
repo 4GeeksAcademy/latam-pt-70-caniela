@@ -8,15 +8,16 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
-#from models import Person
+from models import db, User, Torneo
+# from models import Person
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 
 db_url = os.getenv("DATABASE_URL")
 if db_url is not None:
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace("postgres://", " ://")
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace(
+        "postgres://", " ://")
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -27,14 +28,19 @@ CORS(app)
 setup_admin(app)
 
 # Handle/serialize errors like a JSON object
+
+
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
 # generate sitemap with all your endpoints
+
+
 @app.route('/')
 def sitemap():
     return generate_sitemap(app)
+
 
 @app.route('/user', methods=['GET'])
 def handle_hello():
@@ -44,6 +50,57 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
+
+@app.route('/torneos', methods=['GET'])
+def get_torneos():
+    torneos = Torneo.query.all()
+    return jsonify([item.serialize() for item in torneos]), 200
+
+
+@app.route('/torneos/<int:torneo_id>', methods=['GET'])
+def get_torneo(torneo_id):
+
+    searched_torneo = Torneo.query.get(torneo_id)
+
+    if searched_torneo is None:
+        raise APIException("Torneo no encontrado", status_code=404)
+
+    return jsonify(searched_torneo.serialize()), 200
+
+
+def getVal(request_body, fields):
+    for field in fields:
+        value = request_body.get(field)
+        if not value:
+            raise APIException(
+                f"Se debe proveer un valor para {field}", status_code=400)
+
+    return [request_body.get(field) for field in fields]
+
+
+@app.route('/torneos', methods=['POST'])
+def add_torneo():
+
+    body = request.get_json()
+    name, sede, finicio, ffinal = getVal(
+        body, ['name', 'sede', 'finicio', 'ffinal'])
+
+    new_torneo = Torneo(name=name, sede=sede,
+                        fecha_inicio=finicio, fecha_final=ffinal)
+
+    try:
+        db.session.add(new_torneo)
+        db.session.commit()
+
+    except Exception as e:
+        raise APIException("Error al crear el torneo", status_code=500) from e
+
+    return jsonify({
+        "msg": "Creando un torneo",
+        "torneo": new_torneo.serialize()
+    }), 201
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
