@@ -31,13 +31,17 @@ class Torneo(db.Model):
     fecha_inicio: Mapped[Date] = mapped_column(Date())
     fecha_final: Mapped[Date] = mapped_column(Date())
 
+    premios: Mapped[list["Premios"]] = relationship(back_populates="torneo")
+
     def serialize(self):
         return {
             "id": self.id,
             "name": self.name,
             "sede": self.sede,
             "finicio": self.fecha_inicio,
-            "ffinal": self.fecha_final
+            "ffinal": self.fecha_final,
+
+            "premios": [premio.serialize() for premio in self.premios]
         }
 
 
@@ -77,7 +81,14 @@ class Premios(db.Model):
     descripcion: Mapped[str] = mapped_column(String(360))
 
     torneo_id: Mapped[int] = mapped_column(ForeignKey("torneo.id"))
-    torneo: Mapped[Torneo] = relationship()
+    torneo: Mapped[Torneo] = relationship(back_populates="premios")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "descripcion": self.descripcion,
+        }
 
 
 class Prediccion(db.Model):

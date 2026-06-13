@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Torneo
+from models import db, User, Torneo, Premios
 # from models import Person
 
 app = Flask(__name__)
@@ -99,6 +99,35 @@ def add_torneo():
     return jsonify({
         "msg": "Creando un torneo",
         "torneo": new_torneo.serialize()
+    }), 201
+
+
+@app.route('/premios', methods=['GET'])
+def get_premios():
+    premios = Premios.query.all()
+    return jsonify([item.serialize() for item in premios]), 200
+
+
+@app.route('/premios/<int:torneo_id>', methods=['POST'])
+def add_premio(torneo_id):
+
+    body = request.get_json()
+    name, descripcion = getVal(
+        body, ['name', 'descripcion'])
+
+    new_premio = Premios(
+        nombre=name, descripcion=descripcion, torneo_id=torneo_id)
+
+    try:
+        db.session.add(new_premio)
+        db.session.commit()
+
+    except Exception as e:
+        raise APIException("Error al crear el premio", status_code=500) from e
+
+    return jsonify({
+        "msg": "Creando un premio",
+        "premio": new_premio.serialize()
     }), 201
 
 
